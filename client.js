@@ -12,13 +12,18 @@ class Client {
     this.port = port || PORT;
     this.hand = new ClientHand()
     this.init();
+    this.handshakeSeq = 0;
+    this.handshakeSecret = ""
+    this.trafficSecret = ""
+    this.handshakeKey = ""
+    this.handshakeIV = ""
   }
   init() {
     var client = this;
 
     client.socket.connect(client.port, client.address, async () => {
-      var helloMessage = await client.hand.clientHello()
-      client.socket.write(helloMessage);
+      var clientHello = await client.hand.clientHello()
+      client.socket.write(clientHello);
     });
 
     client.socket.on('data', (data) => {

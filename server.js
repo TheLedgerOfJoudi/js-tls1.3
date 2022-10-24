@@ -1,8 +1,7 @@
 'use strict';
 
-// load the Node.js TCP library
 const net = require('net');
-// const ServerHand = require('./serverHand')
+const ServerHand = require('./serverHand.js')
 const PORT = 1234;
 const HOST = 'localhost';
 
@@ -10,18 +9,26 @@ class Server {
   constructor(port, address) {
     this.port = port || PORT;
     this.address = address || HOST;
-
+    this.hand = new ServerHand()
     this.init();
+    this.handshakeSeq = 0;
+    this.handshakeSecret = ""
+    this.trafficSecret = ""
+    this.handshakeKey = ""
+    this.handshakeIV = ""
   }
 
   init() {
     let server = this;
 
     let onClientConnected = (sock) => {
-      sock.on('data', (data) => {
-        console.log(`${data.byteLength}`);
-        sock.write(data);
-        sock.write('exit');
+      sock.on('data', async (data) => {
+        if (this.handshakeSeq === 0) {
+          var serverHello = await server.hand.serverHello()
+          sock.write(serverHello);
+          this.handshakeSeq = 1;
+          const [handshakeSecret, trafficSecret, handshakeKey, handshakeIV] = await server.hand.serverKeysCalc(data.toString());
+        }
       });
 
       sock.on('close', () => {

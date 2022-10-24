@@ -1,6 +1,5 @@
 'use strict';
 
-// load the Node.js TCP library
 const net = require('net');
 const PORT = 1234;
 const HOST = 'localhost';
@@ -10,6 +9,7 @@ const { randomBytes } = require('crypto')
 
 class ClientHand {
   constructor() {
+    this.helloMessage = ""
   }
 
 
@@ -18,7 +18,7 @@ class ClientHand {
     await new Promise(resolve => process.once(`spawn`, resolve))
     process.stdout.on(`data`, data => console.log(data.toString()))
     process.stderr.on(`data`, data => console.log(data.toString()))
-    await new Promise(resolve => process.stdin.write(`exec openssl genpkey -algorithm ed25519 -out private.pem\n`, `utf8`, () => resolve()))
+    await new Promise(resolve => process.stdin.write(`exec openssl genpkey -algorithm ed25519 -out private-client.pem\n`, `utf8`, () => resolve()))
     await Promise.all([
       new Promise(resolve => process.stdout.on('end', resolve)),
       new Promise(resolve => process.stderr.on('end', resolve)),
@@ -31,7 +31,7 @@ class ClientHand {
     await new Promise(resolve => process.once(`spawn`, resolve))
     process.stdout.on(`data`, data => console.log(data.toString()))
     process.stderr.on(`data`, data => console.log(data.toString()))
-    await new Promise(resolve => process.stdin.write(`exec openssl pkey -in private.pem -pubout -out public.pem\n`, `utf8`, () => resolve()))
+    await new Promise(resolve => process.stdin.write(`exec openssl pkey -in private-client.pem -pubout -out public-client.pem\n`, `utf8`, () => resolve()))
     await Promise.all([
       new Promise(resolve => process.stdout.on('end', resolve)),
       new Promise(resolve => process.stderr.on('end', resolve)),
@@ -43,7 +43,7 @@ class ClientHand {
   async readPublicKey() {
     await this.generatePrivateKey()
     await this.createPublicKeyFromPrivateKey()
-    var key = fs.readFileSync('public.pem').toString().substring(26, 87)
+    var key = fs.readFileSync('public-client.pem').toString().substring(26, 87)
     const buffer = Buffer.from(key, 'base64');
     const bufString = buffer.toString('hex');
     return bufString
@@ -52,8 +52,8 @@ class ClientHand {
   async clientHello() {
     var pubKey = await this.readPublicKey()
     const clientRandom = randomBytes(32).toString('hex')
-    var helloMessage = "16030100f8"
-      + "010000f4"
+    var helloMessage = "16030100ed"
+      + "010000ea"
       + "0303"
       + clientRandom
       + "20e0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
@@ -71,8 +71,9 @@ class ClientHand {
       + "002d00020101"
       + "003300260024001d0020"
       + pubKey
-    console.log(helloMessage)
+    this.helloMessage = helloMessage
     return helloMessage
   }
+
 }
 module.exports = ClientHand;
